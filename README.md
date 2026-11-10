@@ -25,11 +25,15 @@ Record and find receipts, view spending by category, split mixed receipts, recor
 
 ## Proposed Free & Paid Plans
 # Free (V1 scope) 
-- Save, search, and download your own receipts.
+- Save up to 5 new receipts per month. AI-assisted scanning and manual entry share the same allowance. Each receipt counts once when saved.
+- Search, edit, and download saved receipts, even after reaching the monthly limit.
 - View spending by category.
-- Record business expenses, split mixed receipts, track intended GST claims where applicable.
-- Export a period summary with supporting receipts (Limited to 5 scans/mth)
-  
+- Record business expenses, split mixed receipts, and track intended GST claims where applicable.
+- Export a business expense summary for a selected period with the original receipt files. Exports use no receipt allowance.
+
+# Beta Experiment
+Test a first-month allowance of 15 receipts in total with a small group of sole traders, followed by 5 receipts per month. The goal is to see whether users who upload in batches can complete a real business expense export before reaching the limit.
+
 # Premium (V2 scope) 
 - Included all features in free version, but unlimited smart scans
 - AI auto-tagging
