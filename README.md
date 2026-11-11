@@ -1,4 +1,4 @@
-# SlipBox
+# TracePay
 Receipt &amp; Expense Tracker
 
 ## Project Overview
