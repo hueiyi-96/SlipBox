@@ -1,3 +1,21 @@
+class ReceiptItem {
+  const ReceiptItem({required this.description, required this.amountCents});
+
+  final String description;
+  final int amountCents;
+
+  Map<String, Object?> toJson() {
+    return {'description': description, 'amountCents': amountCents};
+  }
+
+  factory ReceiptItem.fromJson(Map<String, Object?> json) {
+    return ReceiptItem(
+      description: json['description']! as String,
+      amountCents: json['amountCents']! as int,
+    );
+  }
+}
+
 class Receipt {
   const Receipt({
     required this.id,
@@ -9,6 +27,11 @@ class Receipt {
     this.fileSha256,
     this.localFilePath,
     this.extractionSource = 'manual',
+    this.usage = 'personal',
+    this.items = const [],
+    this.gstShownCents,
+    this.gstClaimCents,
+    this.gstNeedsReview = false,
   });
 
   final String id;
@@ -23,6 +46,13 @@ class Receipt {
   /// manual, local_mlkit, or cloud_ocr.
   final String extractionSource;
 
+  /// personal, business, or mixed.
+  final String usage;
+  final List<ReceiptItem> items;
+  final int? gstShownCents;
+  final int? gstClaimCents;
+  final bool gstNeedsReview;
+
   Map<String, Object?> toJson() {
     return {
       'id': id,
@@ -34,6 +64,11 @@ class Receipt {
       'fileSha256': fileSha256,
       'localFilePath': localFilePath,
       'extractionSource': extractionSource,
+      'usage': usage,
+      'items': [for (final item in items) item.toJson()],
+      'gstShownCents': gstShownCents,
+      'gstClaimCents': gstClaimCents,
+      'gstNeedsReview': gstNeedsReview,
     };
   }
 
@@ -48,7 +83,40 @@ class Receipt {
       fileSha256: json['fileSha256'] as String?,
       localFilePath: json['localFilePath'] as String?,
       extractionSource: json['extractionSource'] as String? ?? 'manual',
+      usage: json['usage'] as String? ?? 'personal',
+      items: [
+        for (final item in json['items'] as List? ?? const [])
+          if (item is Map)
+            ReceiptItem.fromJson(Map<String, Object?>.from(item)),
+      ],
+      gstShownCents: json['gstShownCents'] as int?,
+      gstClaimCents: json['gstClaimCents'] as int?,
+      gstNeedsReview: json['gstNeedsReview'] as bool? ?? false,
     );
+  }
+}
+
+const receiptUses = ['personal', 'business', 'mixed'];
+
+String usageLabel(String usage) {
+  switch (usage) {
+    case 'business':
+      return 'Business';
+    case 'mixed':
+      return 'Mixed';
+    default:
+      return 'Personal';
+  }
+}
+
+int businessCents(Receipt receipt) {
+  switch (receipt.usage) {
+    case 'business':
+      return receipt.totalCents;
+    case 'mixed':
+      return receipt.items.fold(0, (sum, item) => sum + item.amountCents);
+    default:
+      return 0;
   }
 }
 

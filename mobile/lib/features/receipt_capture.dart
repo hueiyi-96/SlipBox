@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -29,6 +30,19 @@ class ReceiptCapture {
     return _pick(ImageSource.gallery);
   }
 
+  Future<CapturedReceipt?> choosePdf() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+    final sourcePath = picked?.files.single.path;
+    if (sourcePath == null) {
+      return null;
+    }
+    final bytes = await File(sourcePath).readAsBytes();
+    return _store(bytes, 'pdf');
+  }
+
   Future<CapturedReceipt?> _pick(ImageSource source) async {
     final picked = await _picker.pickImage(
       source: source,
@@ -39,11 +53,15 @@ class ReceiptCapture {
       return null;
     }
     final bytes = await picked.readAsBytes();
+    return _store(bytes, 'jpg');
+  }
+
+  Future<CapturedReceipt> _store(List<int> bytes, String extension) async {
     final digest = sha256.convert(bytes).toString();
     final directory = await getApplicationDocumentsDirectory();
     final folder = Directory('${directory.path}/receipts');
     await folder.create(recursive: true);
-    final file = File('${folder.path}/$digest.jpg');
+    final file = File('${folder.path}/$digest.$extension');
     if (!await file.exists()) {
       await file.writeAsBytes(bytes, flush: true);
     }
