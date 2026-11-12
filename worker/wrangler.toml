@@ -1,0 +1,15 @@
+name = "tracepay"
+main = "src/index.ts"
+compatibility_date = "2026-11-12"
+
+# After tracepay.app is on the Cloudflare Free plan, attach the Worker with:
+# routes = [{ pattern = "api.tracepay.app", zone_name = "tracepay.app" }]
+
+[[r2_buckets]]
+binding = "RECEIPTS"
+bucket_name = "tracepay-receipts"
+
+# Copy .dev.vars.example to .dev.vars for `wrangler dev`.
+# Production values belong in `wrangler secret put`, not in this file.
+# DOCUMENT_AI_PROJECT, DOCUMENT_AI_LOCATION, DOCUMENT_AI_PROCESSOR,
+# DOCUMENT_AI_ACCESS_TOKEN, and API_TOKEN.

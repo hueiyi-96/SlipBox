@@ -1,4 +1,4 @@
-package com.example.slipbox
+package com.example.tracepay
 
 import io.flutter.embedding.android.FlutterActivity
 
