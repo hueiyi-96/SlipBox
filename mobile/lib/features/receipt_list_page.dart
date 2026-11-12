@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'category_page.dart';
+import 'export_page.dart';
 import 'local_scan.dart';
 import 'receipt.dart';
 import 'receipt_capture.dart';
 import 'receipt_detail_page.dart';
 import 'receipt_form_page.dart';
+import 'receipt_records.dart';
 import 'receipt_store.dart';
 
 class ReceiptListPage extends StatefulWidget {
@@ -24,38 +27,116 @@ class ReceiptListPage extends StatefulWidget {
 }
 
 class _ReceiptListPageState extends State<ReceiptListPage> {
+  String _query = '';
+  DateTime? _from;
+  DateTime? _to;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('TracePay')),
+      appBar: AppBar(
+        title: const Text('TracePay'),
+        actions: [
+          IconButton(
+            tooltip: 'Spending',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => CategoryPage(store: widget.store),
+                ),
+              );
+            },
+            icon: const Icon(Icons.pie_chart_outline),
+          ),
+          IconButton(
+            tooltip: 'Export',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => ExportPage(store: widget.store),
+                ),
+              );
+            },
+            icon: const Icon(Icons.ios_share),
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: widget.store,
         builder: (context, _) {
-          final receipts = widget.store.receipts;
-          if (receipts.isEmpty) {
-            return const Center(child: Text('No receipts yet'));
-          }
-          return ListView.separated(
-            itemCount: receipts.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final receipt = receipts[index];
-              return ListTile(
-                title: Text(receipt.merchant),
-                subtitle: Text(
-                  '${formatDate(receipt.purchasedOn)} · ${receipt.category}',
+          final receipts = findReceipts(
+            widget.store.receipts,
+            query: _query,
+            from: _from,
+            to: _to,
+          );
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TextField(
+                  key: const Key('search-receipts'),
+                  decoration: const InputDecoration(
+                    hintText: 'Merchant or receipt number',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
                 ),
-                trailing: Text('\$${formatMoney(receipt.totalCents)}'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (context) => ReceiptDetailPage(receipt: receipt),
-                    ),
-                  );
-                },
-              );
-            },
+              ),
+              ListTile(
+                dense: true,
+                title: Text(
+                  _from == null || _to == null
+                      ? 'All dates'
+                      : '${formatDate(_from!)} – ${formatDate(_to!)}',
+                ),
+                trailing: TextButton(
+                  onPressed: _pickDates,
+                  child: Text(_from == null ? 'Choose dates' : 'Change dates'),
+                ),
+              ),
+              Expanded(
+                child: receipts.isEmpty
+                    ? Center(
+                        child: Text(
+                          widget.store.receipts.isEmpty
+                              ? 'No receipts yet'
+                              : 'No matching receipts',
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: receipts.length,
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final receipt = receipts[index];
+                          final review = receipt.gstNeedsReview
+                              ? ' · Needs review'
+                              : '';
+                          return ListTile(
+                            title: Text(receipt.merchant),
+                            subtitle: Text(
+                              '${formatDate(receipt.purchasedOn)} · ${receipt.category} · ${usageLabel(receipt.usage)}$review',
+                            ),
+                            trailing: Text(
+                              '\$${formatMoney(receipt.totalCents)}',
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (context) =>
+                                      ReceiptDetailPage(receipt: receipt),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),
@@ -88,6 +169,11 @@ class _ReceiptListPageState extends State<ReceiptListPage> {
                 onTap: () => Navigator.pop(context, 'gallery'),
               ),
               ListTile(
+                leading: const Icon(Icons.picture_as_pdf),
+                title: const Text('Choose PDF'),
+                onTap: () => Navigator.pop(context, 'pdf'),
+              ),
+              ListTile(
                 key: const Key('enter-details'),
                 leading: const Icon(Icons.edit),
                 title: const Text('Enter details'),
@@ -105,7 +191,61 @@ class _ReceiptListPageState extends State<ReceiptListPage> {
       await _openForm(ReceiptDraft(purchasedOn: DateTime.now()));
       return;
     }
+    if (choice == 'pdf') {
+      await _attachPdf();
+      return;
+    }
     await _scan(choice == 'camera');
+  }
+
+  Future<void> _pickDates() async {
+    final from = await showDatePicker(
+      context: context,
+      initialDate: _from ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (from == null || !mounted) {
+      return;
+    }
+    final to = await showDatePicker(
+      context: context,
+      initialDate: _to ?? from,
+      firstDate: from,
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (to == null) {
+      return;
+    }
+    setState(() {
+      _from = DateTime(from.year, from.month, from.day);
+      _to = DateTime(to.year, to.month, to.day);
+    });
+  }
+
+  Future<void> _attachPdf() async {
+    try {
+      final captured = await widget.capture.choosePdf();
+      if (!mounted || captured == null) {
+        return;
+      }
+      if (widget.store.hasHash(captured.sha256)) {
+        _message('This receipt file is already saved.');
+        return;
+      }
+      await _openForm(
+        ReceiptDraft(
+          purchasedOn: DateTime.now(),
+          localFilePath: captured.path,
+          fileSha256: captured.sha256,
+          note: 'Enter the details from this PDF.',
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        _message('The PDF could not be opened.');
+      }
+    }
   }
 
   Future<void> _scan(bool camera) async {

@@ -12,12 +12,13 @@ class ReceiptDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final path = receipt.localFilePath;
+    final isPdf = path != null && path.toLowerCase().endsWith('.pdf');
     return Scaffold(
       appBar: AppBar(title: Text(receipt.merchant)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          if (path != null && File(path).existsSync())
+          if (path != null && !isPdf && File(path).existsSync())
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: ClipRRect(
@@ -25,11 +26,21 @@ class ReceiptDetailPage extends StatelessWidget {
                 child: Image.file(File(path), height: 220, fit: BoxFit.cover),
               ),
             ),
+          if (isPdf) const Text('Original PDF saved with this receipt.'),
           _row('Date', formatDate(receipt.purchasedOn)),
           _row('Total', '\$${formatMoney(receipt.totalCents)}'),
           _row('Category', receipt.category),
+          _row('Use', usageLabel(receipt.usage)),
           if (receipt.receiptNumber != null)
             _row('Receipt number', receipt.receiptNumber!),
+          if (receipt.usage == 'mixed')
+            for (final item in receipt.items)
+              _row(item.description, '\$${formatMoney(item.amountCents)}'),
+          if (receipt.gstShownCents != null)
+            _row('GST shown', '\$${formatMoney(receipt.gstShownCents!)}'),
+          if (receipt.gstClaimCents != null)
+            _row('GST to claim', '\$${formatMoney(receipt.gstClaimCents!)}'),
+          if (receipt.gstNeedsReview) _row('GST', 'Needs review'),
         ],
       ),
     );
