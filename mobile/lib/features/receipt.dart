@@ -6,6 +6,9 @@ class Receipt {
     required this.totalCents,
     required this.category,
     this.receiptNumber,
+    this.fileSha256,
+    this.localFilePath,
+    this.extractionSource = 'manual',
   });
 
   final String id;
@@ -14,6 +17,11 @@ class Receipt {
   final int totalCents;
   final String category;
   final String? receiptNumber;
+  final String? fileSha256;
+  final String? localFilePath;
+
+  /// manual, local_mlkit, or cloud_ocr.
+  final String extractionSource;
 
   Map<String, Object?> toJson() {
     return {
@@ -23,6 +31,9 @@ class Receipt {
       'totalCents': totalCents,
       'category': category,
       'receiptNumber': receiptNumber,
+      'fileSha256': fileSha256,
+      'localFilePath': localFilePath,
+      'extractionSource': extractionSource,
     };
   }
 
@@ -34,6 +45,9 @@ class Receipt {
       totalCents: json['totalCents']! as int,
       category: json['category']! as String,
       receiptNumber: json['receiptNumber'] as String?,
+      fileSha256: json['fileSha256'] as String?,
+      localFilePath: json['localFilePath'] as String?,
+      extractionSource: json['extractionSource'] as String? ?? 'manual',
     );
   }
 }

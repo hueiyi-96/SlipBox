@@ -26,12 +26,19 @@ class ReceiptExtractionApi {
     );
     final decoded = jsonDecode(response.body);
     if (decoded is! Map) {
-      throw const ReceiptExtractionException('The scan service sent an unexpected response.');
+      throw const ReceiptExtractionException(
+        'The scan service sent an unexpected response.',
+      );
     }
     final body = Map<String, Object?>.from(decoded);
     if (response.statusCode != 200) {
-      final message = body['error'] as String? ?? 'The scan service could not read that receipt.';
-      throw ReceiptExtractionException(message, fileKey: body['fileKey'] as String?);
+      final message =
+          body['error'] as String? ??
+          'The scan service could not read that receipt.';
+      throw ReceiptExtractionException(
+        message,
+        fileKey: body['fileKey'] as String?,
+      );
     }
     return ExtractedReceipt.fromJson(body);
   }

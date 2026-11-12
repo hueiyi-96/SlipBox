@@ -12,9 +12,27 @@ class ReceiptStore extends ChangeNotifier {
   List<Receipt> get receipts => List.unmodifiable(_items);
 
   void add(Receipt receipt) {
-    _items.insert(0, receipt);
+    _items.add(receipt);
+    _items.sort((a, b) => b.purchasedOn.compareTo(a.purchasedOn));
     notifyListeners();
     unawaited(persist());
+  }
+
+  bool hasHash(String sha256) {
+    return _items.any((receipt) => receipt.fileSha256 == sha256);
+  }
+
+  Receipt? similarTo(DateTime day, int totalCents) {
+    for (final receipt in _items) {
+      final sameDay =
+          receipt.purchasedOn.year == day.year &&
+          receipt.purchasedOn.month == day.month &&
+          receipt.purchasedOn.day == day.day;
+      if (sameDay && receipt.totalCents == totalCents) {
+        return receipt;
+      }
+    }
+    return null;
   }
 
   void replaceAll(List<Receipt> receipts) {
@@ -43,7 +61,7 @@ class FileReceiptStore extends ReceiptStore {
     }
     replaceAll([
       for (final item in decoded)
-        if (item is Map<String, Object?>) Receipt.fromJson(item),
+        if (item is Map) Receipt.fromJson(Map<String, Object?>.from(item)),
     ]);
   }
 

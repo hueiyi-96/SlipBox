@@ -1,12 +1,9 @@
 import 'config.dart';
 
-Map<String, String> apiHeaders(
-  TracePayConfig config, {
-  String? contentType,
-}) {
+Map<String, String> apiHeaders(TracePayConfig config, {String? contentType}) {
+  final token = config.apiToken;
   return {
-    if (contentType != null) 'content-type': contentType,
-    if (config.apiToken != null && config.apiToken!.isNotEmpty)
-      'authorization': 'Bearer ${config.apiToken}',
+    'content-type': ?contentType,
+    if (token != null && token.isNotEmpty) 'authorization': 'Bearer $token',
   };
 }
