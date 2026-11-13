@@ -87,9 +87,44 @@ void main() {
 
       expect(draft.extractionSource, 'cloud_ocr');
       expect(draft.totalCents, 1850);
+      expect(draft.currency, 'NZD');
       expect(draft.note, isNull);
     },
   );
+
+  test('parses NZD70.60, RM20,000.40, comma decimals, and thousands', () {
+    final nz = readReceiptText(const [
+      ScanLine('Auckland Books', 10),
+      ScanLine('12 Nov 2026', 30),
+      ScanLine('TOTAL NZD70.60', 60),
+    ]);
+    expect(nz.totalCents, 7060);
+    expect(nz.currency, 'NZD');
+
+    final my = readReceiptText(const [
+      ScanLine('KL Electronics', 10),
+      ScanLine('12/11/2026', 30),
+      ScanLine('TOTAL RM20,000.40', 60),
+    ]);
+    expect(my.totalCents, 2000040);
+    expect(my.currency, 'MYR');
+
+    final commaDecimal = readReceiptText(const [
+      ScanLine('Berlin Bakery', 10),
+      ScanLine('2026-11-12', 30),
+      ScanLine('TOTAL €20.000,40', 60),
+    ]);
+    expect(commaDecimal.totalCents, 2000040);
+    expect(commaDecimal.currency, 'EUR');
+
+    final thousandsOnly = readReceiptText(const [
+      ScanLine('Baghdad Market', 10),
+      ScanLine('2026-11-12', 30),
+      ScanLine('TOTAL 25,000 IQD', 60),
+    ]);
+    expect(thousandsOnly.totalCents, 2500000);
+    expect(thousandsOnly.currency, 'IQD');
+  });
 }
 
 class _FixedReader implements ReceiptTextReader {

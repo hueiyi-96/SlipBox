@@ -150,11 +150,11 @@ bool _inPeriod(DateTime day, DateTime? from, DateTime? to) {
 String _exportLine(Receipt receipt) {
   final gst = receipt.gstClaimCents == null
       ? ''
-      : ', GST claim \$${formatMoney(receipt.gstClaimCents!)}';
+      : ', GST claim ${formatReceiptMoney(receipt.gstClaimCents!, currency: receipt.currency)}';
   final shown = receipt.gstShownCents == null
       ? ''
-      : ', GST shown \$${formatMoney(receipt.gstShownCents!)}';
-  return '${receipt.merchant}, ${formatDate(receipt.purchasedOn)}, ${receipt.category}, \$${formatMoney(businessCents(receipt))}$shown$gst';
+      : ', GST shown ${formatReceiptMoney(receipt.gstShownCents!, currency: receipt.currency)}';
+  return '${receipt.merchant}, ${formatDate(receipt.purchasedOn)}, ${receipt.category}, ${formatReceiptMoney(businessCents(receipt), currency: receipt.currency)}$shown$gst';
 }
 
 int _sumBusiness(List<Receipt> receipts) {

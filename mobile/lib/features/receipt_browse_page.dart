@@ -37,7 +37,12 @@ class ReceiptBrowsePage extends StatelessWidget {
                 subtitle: Text(
                   '${formatDate(receipt.purchasedOn)} · ${receipt.category}',
                 ),
-                trailing: Text('\$${formatMoney(receipt.totalCents)}'),
+                trailing: Text(
+                  formatReceiptMoney(
+                    receipt.totalCents,
+                    currency: receipt.currency,
+                  ),
+                ),
                 onTap: () {
                   Navigator.push(
                     context,

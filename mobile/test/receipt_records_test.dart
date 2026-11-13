@@ -88,4 +88,18 @@ void main() {
       'Business items add up to more than the receipt total.',
     );
   });
+
+  test(
+    'parseMoney handles currency codes, thousands commas, and comma decimals',
+    () {
+      expect(parseMoney('NZD70.60'), 7060);
+      expect(parseMoney('RM20,000.40'), 2000040);
+      expect(parseMoney('20.000,40'), 2000040);
+      expect(parseMoney('70,60'), 7060);
+      expect(parseMoney('25,000'), 2500000);
+      expect(detectCurrency('RM20,000.40'), 'MYR');
+      expect(detectCurrency('NZD70.60'), 'NZD');
+      expect(detectCurrency('Pharmacy'), isNull);
+    },
+  );
 }
