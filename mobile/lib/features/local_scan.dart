@@ -1,5 +1,6 @@
 import '../core/errors.dart';
 import '../core/network.dart';
+import 'receipt.dart';
 
 class ScanLine {
   const ScanLine(this.text, this.top);
@@ -9,11 +10,17 @@ class ScanLine {
 }
 
 class LocalScanResult {
-  const LocalScanResult({this.merchant, this.purchasedOn, this.totalCents});
+  const LocalScanResult({
+    this.merchant,
+    this.purchasedOn,
+    this.totalCents,
+    this.currency,
+  });
 
   final String? merchant;
   final DateTime? purchasedOn;
   final int? totalCents;
+  final String? currency;
 
   bool get isComplete =>
       merchant != null && purchasedOn != null && totalCents != null;
@@ -24,6 +31,7 @@ class ReceiptDraft {
     this.merchant,
     this.purchasedOn,
     this.totalCents,
+    this.currency,
     this.receiptNumber,
     this.localFilePath,
     this.fileSha256,
@@ -34,6 +42,7 @@ class ReceiptDraft {
   final String? merchant;
   final DateTime? purchasedOn;
   final int? totalCents;
+  final String? currency;
   final String? receiptNumber;
   final String? localFilePath;
   final String? fileSha256;
@@ -62,6 +71,7 @@ class ScanCoordinator {
         merchant: local.merchant,
         purchasedOn: local.purchasedOn,
         totalCents: local.totalCents,
+        currency: local.currency,
         localFilePath: path,
         fileSha256: sha256,
         extractionSource: 'local_mlkit',
@@ -71,6 +81,7 @@ class ScanCoordinator {
     var merchant = local.merchant;
     var purchasedOn = local.purchasedOn;
     var totalCents = local.totalCents;
+    var currency = local.currency;
     String? receiptNumber;
     var source = 'local_mlkit';
     String? note;
@@ -82,6 +93,7 @@ class ScanCoordinator {
         merchant ??= remote.merchant;
         purchasedOn ??= remote.purchasedOn;
         totalCents ??= remote.totalCents;
+        currency ??= remote.currency;
         receiptNumber = remote.receiptNumber;
         source = 'cloud_ocr';
       } on ReceiptExtractionException catch (error) {
@@ -97,6 +109,7 @@ class ScanCoordinator {
       merchant: merchant,
       purchasedOn: purchasedOn,
       totalCents: totalCents,
+      currency: currency,
       receiptNumber: receiptNumber,
       localFilePath: path,
       fileSha256: sha256,
@@ -114,6 +127,7 @@ LocalScanResult readReceiptText(List<ScanLine> lines) {
     merchant: _merchant(ordered),
     purchasedOn: _date(ordered),
     totalCents: _total(ordered),
+    currency: _currency(ordered),
   );
 }
 
@@ -181,12 +195,40 @@ int? _total(List<ScanLine> lines) {
 }
 
 int? _lastMoney(String text) {
-  final matches = RegExp(r'(\d{1,6})[.,](\d{2})').allMatches(text).toList();
-  if (matches.isEmpty) {
-    return null;
+  final compact = text.replaceAllMapped(
+    RegExp(r'(?<=\d) (?=\d{3}(?:[ ,.]|$))'),
+    (_) => '',
+  );
+  final matches = RegExp(
+    r'(?<![\d.,])(?:\d{1,3}(?:[.,]\d{3})+[.,]\d{2}|\d+[.,]\d{2}|\d{1,3}(?:,\d{3})+)(?![\d.,])',
+  ).allMatches(compact);
+  int? last;
+  for (final match in matches) {
+    final parsed = parseMoneyToken(match.group(0)!);
+    if (parsed != null) {
+      last = parsed;
+    }
   }
-  final match = matches.last;
-  return int.parse(match.group(1)!) * 100 + int.parse(match.group(2)!);
+  return last;
+}
+
+String? _currency(List<ScanLine> lines) {
+  for (final line in lines.reversed) {
+    final lower = line.text.toLowerCase();
+    if (RegExp(r'\b(total|amount due|balance due)\b').hasMatch(lower)) {
+      final found = detectCurrency(line.text);
+      if (found != null) {
+        return found;
+      }
+    }
+  }
+  for (final line in lines) {
+    final found = detectCurrency(line.text);
+    if (found != null) {
+      return found;
+    }
+  }
+  return null;
 }
 
 final _months = {

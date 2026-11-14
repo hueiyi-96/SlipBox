@@ -3,9 +3,15 @@ import test from "node:test";
 
 import { entitiesToReceipt, moneyToCents } from "./receipt_extraction_service.ts";
 
-test("money uses the first two decimal digits", () => {
+test("money parses dot decimals, comma decimals, thousands, and currency prefixes", () => {
   assert.equal(moneyToCents("15.9"), 1590);
   assert.equal(moneyToCents("$1,234.56"), 123456);
+  assert.equal(moneyToCents("NZD70.60"), 7060);
+  assert.equal(moneyToCents("RM20,000.40"), 2000040);
+  assert.equal(moneyToCents("20.000,40"), 2000040);
+  assert.equal(moneyToCents("70,60"), 7060);
+  assert.equal(moneyToCents("25,000"), 2500000);
+  assert.equal(moneyToCents("-12,50"), -1250);
   assert.equal(moneyToCents("not a price"), null);
 });
 

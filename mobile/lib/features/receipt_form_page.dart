@@ -36,6 +36,9 @@ class _ReceiptFormPageState extends State<ReceiptFormPage> {
         ? ''
         : formatMoney(widget.draft.totalCents!),
   );
+  late final TextEditingController _currency = TextEditingController(
+    text: widget.draft.currency ?? '',
+  );
   late final TextEditingController _number = TextEditingController(
     text: widget.draft.receiptNumber ?? '',
   );
@@ -52,6 +55,7 @@ class _ReceiptFormPageState extends State<ReceiptFormPage> {
   void dispose() {
     _merchant.dispose();
     _total.dispose();
+    _currency.dispose();
     _number.dispose();
     _gstShown.dispose();
     _gstClaim.dispose();
@@ -110,14 +114,37 @@ class _ReceiptFormPageState extends State<ReceiptFormPage> {
             onTap: _pickDate,
           ),
           const SizedBox(height: 12),
-          TextField(
-            key: const Key('total-field'),
-            controller: _total,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Total',
-              border: OutlineInputBorder(),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('total-field'),
+                  controller: _total,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Total',
+                    hintText: 'e.g. 70.60, RM20,000.40',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120,
+                child: TextField(
+                  key: const Key('currency-field'),
+                  controller: _currency,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'Currency',
+                    hintText: 'NZD',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           TextField(
@@ -355,6 +382,10 @@ class _ReceiptFormPageState extends State<ReceiptFormPage> {
       }
     }
     final number = _number.text.trim();
+    final typedCurrency = _currency.text.trim().toUpperCase();
+    final resolvedCurrency = typedCurrency.isNotEmpty
+        ? (detectCurrency(typedCurrency) ?? typedCurrency)
+        : detectCurrency(_total.text);
     Navigator.pop(
       context,
       Receipt(
@@ -363,6 +394,7 @@ class _ReceiptFormPageState extends State<ReceiptFormPage> {
         purchasedOn: _date,
         totalCents: cents,
         category: _category,
+        currency: resolvedCurrency,
         receiptNumber: number.isEmpty ? null : number,
         fileSha256: widget.draft.fileSha256,
         localFilePath: widget.draft.localFilePath,

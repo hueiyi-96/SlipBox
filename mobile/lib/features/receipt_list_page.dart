@@ -121,7 +121,10 @@ class _ReceiptListPageState extends State<ReceiptListPage> {
                               '${formatDate(receipt.purchasedOn)} · ${receipt.category} · ${usageLabel(receipt.usage)}$review',
                             ),
                             trailing: Text(
-                              '\$${formatMoney(receipt.totalCents)}',
+                              formatReceiptMoney(
+                                receipt.totalCents,
+                                currency: receipt.currency,
+                              ),
                             ),
                             onTap: () {
                               Navigator.push(

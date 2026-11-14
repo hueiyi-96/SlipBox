@@ -28,18 +28,40 @@ class ReceiptDetailPage extends StatelessWidget {
             ),
           if (isPdf) const Text('Original PDF saved with this receipt.'),
           _row('Date', formatDate(receipt.purchasedOn)),
-          _row('Total', '\$${formatMoney(receipt.totalCents)}'),
+          _row(
+            'Total',
+            formatReceiptMoney(receipt.totalCents, currency: receipt.currency),
+          ),
+          if (receipt.currency != null) _row('Currency', receipt.currency!),
           _row('Category', receipt.category),
           _row('Use', usageLabel(receipt.usage)),
           if (receipt.receiptNumber != null)
             _row('Receipt number', receipt.receiptNumber!),
           if (receipt.usage == 'mixed')
             for (final item in receipt.items)
-              _row(item.description, '\$${formatMoney(item.amountCents)}'),
+              _row(
+                item.description,
+                formatReceiptMoney(
+                  item.amountCents,
+                  currency: receipt.currency,
+                ),
+              ),
           if (receipt.gstShownCents != null)
-            _row('GST shown', '\$${formatMoney(receipt.gstShownCents!)}'),
+            _row(
+              'GST shown',
+              formatReceiptMoney(
+                receipt.gstShownCents!,
+                currency: receipt.currency,
+              ),
+            ),
           if (receipt.gstClaimCents != null)
-            _row('GST to claim', '\$${formatMoney(receipt.gstClaimCents!)}'),
+            _row(
+              'GST to claim',
+              formatReceiptMoney(
+                receipt.gstClaimCents!,
+                currency: receipt.currency,
+              ),
+            ),
           if (receipt.gstNeedsReview) _row('GST', 'Needs review'),
         ],
       ),
